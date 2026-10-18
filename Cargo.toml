@@ -1,0 +1,57 @@
+[package]
+name = "github-contribution-agent"
+version = "0.1.0"
+edition = "2021"
+description = "Private AI assistant for discovering good first issue opportunities on GitHub"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# Web framework
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+
+# HTTP client
+reqwest = { version = "0.13", features = ["json"] }
+
+# Database
+sqlx = { version = "0.9", features = ["postgres", "runtime-tokio", "migrate", "json"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Config
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Errors
+anyhow = "1"
+thiserror = "2"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Email (rustls TLS to avoid OpenSSL/native-tls dependency)
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "rustls-tls"] }
+
+# GitHub webhook auth
+hmac = "0.13"
+sha2 = "0.11"
+hex = "0.4"
+
+# OpenAPI
+utoipa = { version = "5", features = ["axum_extras"] }
+
+# Agent framework
+rig = { version = "0.42", features = ["agent"] }
+
+[dev-dependencies]
+wiremock = "0.6"
