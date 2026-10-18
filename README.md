@@ -69,11 +69,11 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] `src/error.rs` — `AppError` via `thiserror`
 - [x] Checkpoint: `cargo check` passes, `cargo test` compiles, CLI `--help` works
 
-### Phase 2: Database layer
-- [ ] `migrations/001_initial.sql`, `migrations/002_approval_actions.sql`
-- [ ] `src/database/mod.rs` — `PgPool` + `sqlx::migrate!`
-- [ ] CRUD modules: `repositories.rs`, `issues.rs`, `analyses.rs`, `approvals.rs`, `notifications.rs`
-- [ ] Checkpoint: `cargo test` passes
+### Phase 2: Database layer ✅ COMPLETE
+- [x] `migrations/001_initial.sql`, `migrations/002_approval_actions.sql`
+- [x] `src/database/mod.rs` — `PgPool` + `sqlx::migrate!`
+- [x] CRUD modules: `repositories.rs`, `issues.rs`, `analyses.rs`, `approvals.rs`, `notifications.rs`
+- [x] Checkpoint: `cargo test` passes (4 struct serialization tests)
 
 ### Phase 3: GitHub client + webhook
 - [ ] `src/github/models.rs` — serde types for GitHub API
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 1 complete. Next: Phase 2 (Database layer).**
+**Status: Phase 2 complete. Next: Phase 3 (GitHub client + webhook).**
 
 ---
 
