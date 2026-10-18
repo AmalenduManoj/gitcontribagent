@@ -63,11 +63,11 @@ GitHub Webhook
 
 Progress tracker for cross-session continuity. Each phase ends with a compile/test checkpoint.
 
-### Phase 1: Project skeleton, config, error types
-- [ ] `cargo init`, `Cargo.toml` with all dependencies
-- [ ] `src/config.rs` — env config via `dotenvy`
-- [ ] `src/error.rs` — `AppError` via `thiserror`
-- [ ] Checkpoint: `cargo check` passes
+### Phase 1: Project skeleton, config, error types ✅ COMPLETE
+- [x] `cargo init`, `Cargo.toml` with all dependencies
+- [x] `src/config.rs` — env config via `dotenvy`
+- [x] `src/error.rs` — `AppError` via `thiserror`
+- [x] Checkpoint: `cargo check` passes, `cargo test` compiles, CLI `--help` works
 
 ### Phase 2: Database layer
 - [ ] `migrations/001_initial.sql`, `migrations/002_approval_actions.sql`
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 0 complete (planning). Next: Phase 1.**
+**Status: Phase 1 complete. Next: Phase 2 (Database layer).**
 
 ---
 
