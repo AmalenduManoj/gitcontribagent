@@ -75,16 +75,16 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] CRUD modules: `repositories.rs`, `issues.rs`, `analyses.rs`, `approvals.rs`, `notifications.rs`
 - [x] Checkpoint: `cargo test` passes (4 struct serialization tests)
 
-### Phase 3: GitHub client + webhook
-- [ ] `src/github/models.rs` — serde types for GitHub API
-- [ ] `src/github/client.rs` — `GitHubClient` trait + reqwest impl
-- [ ] `src/github/webhooks.rs` — HMAC-SHA256 signature validation, event parsing
-- [ ] Checkpoint: `cargo test` (signature validation unit tests, no network)
+### Phase 3: GitHub client + webhook ✅ COMPLETE
+- [x] `src/github/models.rs` — serde types for GitHub API
+- [x] `src/github/client.rs` — `GitHubClient` trait + reqwest impl
+- [x] `src/github/webhooks.rs` — HMAC-SHA256 signature validation, event parsing
+- [x] Checkpoint: `cargo test` (8 signature/parsing tests, no network)
 
-### Phase 4: Issue filtering + persistence
-- [ ] `src/services/issue_service.rs` — `IssueFilter` with configurable labels
-- [ ] Case-insensitive label matching, ignored users, idempotency via `event_id`
-- [ ] Checkpoint: `cargo test` (label matching, filtering)
+### Phase 4: Issue filtering + persistence ✅ COMPLETE
+- [x] `src/services/issue_service.rs` — `IssueFilter` with configurable labels
+- [x] Case-insensitive label matching, ignored users, idempotency via `event_id`
+- [x] Checkpoint: `cargo test` (13 filtering tests, total 25)
 
 ### Phase 5: Rig integration + analysis agent
 - [ ] `src/agents/provider.rs` — `LlmProvider` trait + OpenAI impl
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 2 complete. Next: Phase 3 (GitHub client + webhook).**
+**Status: Phase 4 complete. Next: Phase 5 (Rig integration + analysis agent).**
 
 ---
 
