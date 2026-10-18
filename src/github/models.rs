@@ -29,7 +29,7 @@ pub struct GitHubIssue {
     pub updated_at: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitHubLabel {
     pub id: i64,
     pub name: String,
