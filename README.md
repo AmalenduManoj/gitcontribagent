@@ -105,12 +105,12 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] **Never calls GitHub API**
 - [x] Checkpoint: `cargo check` + `cargo test` pass (29 tests)
 
-### Phase 8: Approval + comment posting
-- [ ] `src/approval/service.rs` — state machine: `pending -> approved -> executed`
-- [ ] `POST /issues/:id/approve-comment` — transitions to `approved`
-- [ ] `POST /issues/:id/post-comment` — only from `approved`, calls GitHub, records `github_comment_id`
-- [ ] Audit trail in `approval_actions` + `github_comments`
-- [ ] Checkpoint: `cargo test` (state transitions)
+### Phase 8: Approval + comment posting ✅ COMPLETE
+- [x] `approval/service.rs` — state machine: `pending -> approved -> executed`
+- [x] `POST /issues/:id/approve-comment` — transitions to `approved`
+- [x] `POST /issues/:id/post-comment` — only from `approved`, calls GitHub, records `github_comment_id`
+- [x] Audit trail in `approval_actions` + `github_comments`
+- [x] Checkpoint: `cargo check` + `cargo test` pass (29 tests)
 
 ### Phase 9: CLI + Docker + integration tests + README
 - [ ] `src/cli/` — clap subcommands
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 7 complete. Next: Phase 8 (Approval + comment posting).**
+**Status: Phase 8 complete. Next: Phase 9 (CLI + Docker + integration tests + README).**
 
 ---
 

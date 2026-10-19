@@ -53,6 +53,23 @@ pub async fn get_pending_approval(
     Ok(action)
 }
 
+pub async fn get_approved_approval(
+    pool: &PgPool,
+    issue_id: i64,
+    action_type: &str,
+) -> anyhow::Result<Option<ApprovalAction>> {
+    let action = sqlx::query_as::<_, ApprovalAction>(
+        r#"SELECT id, issue_id, action_type, status, generated_payload, approved_by, approved_at, executed_at, github_comment_id
+           FROM approval_actions WHERE issue_id = $1 AND action_type = $2 AND status = 'approved'
+           ORDER BY created_at DESC LIMIT 1"#,
+    )
+    .bind(issue_id)
+    .bind(action_type)
+    .fetch_optional(pool)
+    .await?;
+    Ok(action)
+}
+
 pub async fn approve_action(pool: &PgPool, id: i64, approved_by: &str) -> anyhow::Result<()> {
     let result = sqlx::query(
         r#"UPDATE approval_actions SET status = 'approved', approved_by = $2, approved_at = NOW() WHERE id = $1 AND status = 'pending'"#,

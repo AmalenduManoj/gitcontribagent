@@ -58,3 +58,9 @@ impl axum::response::IntoResponse for AppError {
         (status, axum::Json(body)).into_response()
     }
 }
+
+impl From<anyhow::Error> for AppError {
+    fn from(e: anyhow::Error) -> Self {
+        AppError::Internal(e.to_string())
+    }
+}
