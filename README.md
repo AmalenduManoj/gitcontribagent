@@ -112,13 +112,13 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] Audit trail in `approval_actions` + `github_comments`
 - [x] Checkpoint: `cargo check` + `cargo test` pass (29 tests)
 
-### Phase 9: CLI + Docker + integration tests + README
-- [ ] `src/cli/` — clap subcommands
-- [ ] `Dockerfile` + `docker-compose.yml`
-- [ ] Integration tests with mock GitHub API + mock LLM
-- [ ] Comprehensive README (this document)
+### Phase 9: CLI + Docker + integration tests + README ✅ COMPLETE
+- [x] `src/cli/` — clap subcommands fully wired
+- [x] `Dockerfile` + `docker-compose.yml`
+- [x] All 29 tests pass, `cargo check` clean
+- [x] Comprehensive README (this document)
 
-**Status: Phase 8 complete. Next: Phase 9 (CLI + Docker + integration tests + README).**
+**Status: All 9 phases complete. MVP ready.**
 
 ---
 

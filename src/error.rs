@@ -37,6 +37,12 @@ pub enum AppError {
     Internal(String),
 }
 
+impl From<anyhow::Error> for AppError {
+    fn from(e: anyhow::Error) -> Self {
+        AppError::Internal(e.to_string())
+    }
+}
+
 impl AppError {
     /// Map each error variant to an HTTP status code.
     pub fn status_code(&self) -> axum::http::StatusCode {
@@ -56,11 +62,5 @@ impl axum::response::IntoResponse for AppError {
         let status = self.status_code();
         let body = serde_json::json!({ "error": self.to_string() });
         (status, axum::Json(body)).into_response()
-    }
-}
-
-impl From<anyhow::Error> for AppError {
-    fn from(e: anyhow::Error) -> Self {
-        AppError::Internal(e.to_string())
     }
 }
