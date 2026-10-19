@@ -93,11 +93,11 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] Prompts in `prompts/` directory (not hardcoded in Rust)
 - [x] Checkpoint: `cargo check` + `cargo test` pass (25 tests, zero warnings)
 
-### Phase 6: Email notifications
-- [ ] `src/notifications/trait.rs` — `NotificationProvider` trait
-- [ ] `src/notifications/email.rs` — SMTP via `lettre`
-- [ ] HTML + plain text templates
-- [ ] Checkpoint: `cargo test` (mock provider)
+### Phase 6: Email notifications ✅ COMPLETE
+- [x] `src/notifications/trait.rs` — `NotificationProvider` trait
+- [x] `src/notifications/email.rs` — SMTP via `lettre`
+- [x] HTML + plain text templates
+- [x] Checkpoint: `cargo test` (4 notification tests, total 29)
 
 ### Phase 7: Comment generation
 - [ ] `src/agents/comment_generation.rs`
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 5 complete. Next: Phase 6 (Email notifications).**
+**Status: Phase 6 complete. Next: Phase 7 (Comment generation).**
 
 ---
 
