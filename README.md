@@ -99,11 +99,11 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] HTML + plain text templates
 - [x] Checkpoint: `cargo test` (4 notification tests, total 29)
 
-### Phase 7: Comment generation
-- [ ] `src/agents/comment_generation.rs`
-- [ ] `POST /issues/:id/generate-comment` — creates `approval_actions` row with `status=pending`
-- [ ] **Never calls GitHub API**
-- [ ] Checkpoint: `cargo test`
+### Phase 7: Comment generation ✅ COMPLETE
+- [x] `src/agents/comment_generation.rs`
+- [x] `POST /issues/:id/generate-comment` — creates `approval_actions` row with `status=pending`
+- [x] **Never calls GitHub API**
+- [x] Checkpoint: `cargo check` + `cargo test` pass (29 tests)
 
 ### Phase 8: Approval + comment posting
 - [ ] `src/approval/service.rs` — state machine: `pending -> approved -> executed`
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 6 complete. Next: Phase 7 (Comment generation).**
+**Status: Phase 7 complete. Next: Phase 8 (Approval + comment posting).**
 
 ---
 
