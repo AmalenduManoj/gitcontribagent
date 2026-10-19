@@ -41,7 +41,7 @@ thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 
 # Email (rustls TLS to avoid OpenSSL/native-tls dependency)
-lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-rustls-tls"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "tokio1", "tokio1-rustls-tls", "builder"] }
 
 # GitHub webhook auth
 hmac = "0.13"
