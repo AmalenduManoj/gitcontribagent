@@ -2699,6 +2699,7 @@ dependencies = [
  "lettre",
  "reqwest 0.13.5",
  "rig",
+ "schemars 1.2.2",
  "serde",
  "serde_json",
  "sha2 0.11.0",
