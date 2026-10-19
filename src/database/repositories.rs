@@ -46,6 +46,16 @@ pub async fn get_repository_by_owner_name(
     Ok(repo)
 }
 
+pub async fn get_repository_by_id(pool: &PgPool, id: i64) -> anyhow::Result<Option<Repository>> {
+    let repo = sqlx::query_as::<_, Repository>(
+        r#"SELECT id, owner, name, github_repo_id FROM repositories WHERE id = $1"#,
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(repo)
+}
+
 pub async fn list_repositories(pool: &PgPool) -> anyhow::Result<Vec<Repository>> {
     let repos = sqlx::query_as::<_, Repository>(
         r#"SELECT id, owner, name, github_repo_id FROM repositories ORDER BY owner, name"#,

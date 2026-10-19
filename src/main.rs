@@ -21,11 +21,11 @@ async fn main() -> anyhow::Result<()> {
         Commands::Db { command } => {
             github_contribution_agent::database::run_migration_command(command).await?;
         }
-        Commands::Repository { .. } => {
-            todo!("Repository commands: Phase 2+")
+        Commands::Repository { command } => {
+            github_contribution_agent::cli::handle_repository(command).await?;
         }
-        Commands::Issue { .. } => {
-            todo!("Issue commands: Phase 2+")
+        Commands::Issue { command } => {
+            github_contribution_agent::cli::handle_issue(command).await?;
         }
     }
 

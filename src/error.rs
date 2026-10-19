@@ -37,6 +37,12 @@ pub enum AppError {
     Internal(String),
 }
 
+impl From<anyhow::Error> for AppError {
+    fn from(e: anyhow::Error) -> Self {
+        AppError::Internal(e.to_string())
+    }
+}
+
 impl AppError {
     /// Map each error variant to an HTTP status code.
     pub fn status_code(&self) -> axum::http::StatusCode {
