@@ -73,6 +73,17 @@ pub async fn get_issue_by_number(
     Ok(issue)
 }
 
+pub async fn get_issue_by_id(pool: &PgPool, id: i64) -> anyhow::Result<Option<Issue>> {
+    let issue = sqlx::query_as::<_, Issue>(
+        r#"SELECT id, repository_id, github_issue_id, issue_number, title, body, state, author, labels, html_url
+           FROM issues WHERE id = $1"#,
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(issue)
+}
+
 pub async fn list_issues(
     pool: &PgPool,
     repository_id: Option<i64>,
