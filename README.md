@@ -86,12 +86,12 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [x] Case-insensitive label matching, ignored users, idempotency via `event_id`
 - [x] Checkpoint: `cargo test` (13 filtering tests, total 25)
 
-### Phase 5: Rig integration + analysis agent
-- [ ] `src/agents/provider.rs` — `LlmProvider` trait + OpenAI impl
-- [ ] `src/agents/repository_context.rs` — README, CONTRIBUTING, file tree
-- [ ] `src/agents/issue_analysis.rs` — `Extractor<IssueAnalysis>` structured output
-- [ ] Prompts in `prompts/` directory (not hardcoded in Rust)
-- [ ] Checkpoint: `cargo test` (mock `LlmProvider` returns canned analysis)
+### Phase 5: Rig integration + analysis agent ✅ COMPLETE
+- [x] `src/agents/provider.rs` — `LlmProvider` trait + OpenAI impl
+- [x] `src/agents/repository_context.rs` — README, CONTRIBUTING, file tree
+- [x] `src/agents/issue_analysis.rs` — `Extractor<IssueAnalysis>` structured output
+- [x] Prompts in `prompts/` directory (not hardcoded in Rust)
+- [x] Checkpoint: `cargo check` + `cargo test` pass (25 tests, zero warnings)
 
 ### Phase 6: Email notifications
 - [ ] `src/notifications/trait.rs` — `NotificationProvider` trait
@@ -118,7 +118,7 @@ Progress tracker for cross-session continuity. Each phase ends with a compile/te
 - [ ] Integration tests with mock GitHub API + mock LLM
 - [ ] Comprehensive README (this document)
 
-**Status: Phase 4 complete. Next: Phase 5 (Rig integration + analysis agent).**
+**Status: Phase 5 complete. Next: Phase 6 (Email notifications).**
 
 ---
 
