@@ -7,6 +7,7 @@ pub struct Repository {
     pub owner: String,
     pub name: String,
     pub github_repo_id: Option<i64>,
+    pub last_polled_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub async fn upsert_repository(
@@ -54,6 +55,14 @@ pub async fn get_repository_by_id(pool: &PgPool, id: i64) -> anyhow::Result<Opti
     .fetch_optional(pool)
     .await?;
     Ok(repo)
+}
+
+pub async fn update_last_polled_at(pool: &PgPool, id: i64) -> anyhow::Result<()> {
+    sqlx::query("UPDATE repositories SET last_polled_at = NOW() WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 pub async fn list_repositories(pool: &PgPool) -> anyhow::Result<Vec<Repository>> {

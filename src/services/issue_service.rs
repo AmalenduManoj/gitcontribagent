@@ -121,3 +121,57 @@ pub async fn process_webhook_event(
 
     Ok(result)
 }
+
+pub async fn process_polled_issue(
+    pool: &sqlx::PgPool,
+    filter: &IssueFilter,
+    repo: &crate::database::repositories::Repository,
+    issue: &crate::github::models::GitHubIssue,
+    labels: &serde_json::Value,
+) -> anyhow::Result<FilterResult> {
+    let event = crate::github::models::WebhookEvent {
+        event_type: crate::github::models::WebhookEventType::Issues,
+        action: Some("opened".into()),
+        repository: crate::github::models::GitHubRepo {
+            id: repo.github_repo_id.unwrap_or(0),
+            name: repo.name.clone(),
+            full_name: format!("{}/{}", repo.owner, repo.name),
+            description: None,
+            html_url: format!("https://github.com/{}/{}", repo.owner, repo.name),
+            language: None,
+            stargazers_count: 0,
+            open_issues_count: 0,
+            default_branch: "main".into(),
+            owner: crate::github::models::GitHubUser {
+                id: 0,
+                login: repo.owner.clone(),
+                html_url: format!("https://github.com/{}", repo.owner),
+                r#type: "User".into(),
+            },
+        },
+        issue: Some(issue.clone()),
+        sender: crate::github::models::GitHubUser {
+            id: issue.user.id,
+            login: issue.user.login.clone(),
+            html_url: issue.user.html_url.clone(),
+            r#type: issue.user.r#type.clone(),
+        },
+    };
+
+    let result = filter.should_process(&event);
+    if result == FilterResult::Accept {
+        crate::database::issues::upsert_issue(
+            pool,
+            repo.id,
+            issue.id,
+            issue.number,
+            &issue.title,
+            issue.body.as_deref(),
+            &issue.state,
+            Some(&issue.user.login),
+            labels,
+            Some(&issue.html_url),
+        ).await?;
+    }
+    Ok(result)
+}

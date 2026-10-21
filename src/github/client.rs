@@ -15,6 +15,13 @@ pub trait GitHubClient: Send + Sync {
         number: i32,
     ) -> anyhow::Result<GitHubIssue>;
 
+    async fn list_issues(
+        &self,
+        owner: &str,
+        repo: &str,
+        since: Option<&str>,
+    ) -> anyhow::Result<Vec<GitHubIssue>>;
+
     async fn get_issue_comments(
         &self,
         owner: &str,
@@ -116,6 +123,42 @@ impl GitHubClientImpl {
 
 #[async_trait]
 impl GitHubClient for GitHubClientImpl {
+    async fn list_issues(
+        &self,
+        owner: &str,
+        repo: &str,
+        since: Option<&str>,
+    ) -> anyhow::Result<Vec<GitHubIssue>> {
+        let mut url = format!("{}/issues?state=open&per_page=100", self.base_url(owner, repo));
+        if let Some(s) = since {
+            url.push_str(&format!("&since={}", s));
+        }
+
+        let response = self
+            .client
+            .get(&url)
+            .bearer_auth(&self.token)
+            .header("Accept", "application/vnd.github+json")
+            .send()
+            .await
+            .map_err(|e| crate::error::AppError::GitHubApi(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(crate::error::AppError::GitHubApi(format!(
+                "GitHub API error {}: {}",
+                status, text
+            ))
+            .into());
+        }
+
+        response
+            .json::<Vec<GitHubIssue>>()
+            .await
+            .map_err(|e| crate::error::AppError::GitHubApi(e.to_string()).into())
+    }
+
     async fn get_issue(
         &self,
         owner: &str,

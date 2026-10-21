@@ -30,6 +30,8 @@ fn test_config() -> Config {
         .map(|s| s.to_string())
         .collect(),
         ignored_users: ["bot-user"].iter().map(|s| s.to_string()).collect(),
+        poll_interval_secs: 300,
+        poll_enabled: true,
     }
 }
 
