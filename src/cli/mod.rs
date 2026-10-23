@@ -66,7 +66,8 @@ pub async fn handle_repository(command: RepositoryCommands) -> anyhow::Result<()
 
     match command {
         RepositoryCommands::Add { repo } => {
-            let (owner, name) = parse_repo(&repo)?;
+            let (owner, mut name) = parse_repo(&repo)?;
+            name = name.trim_end_matches(".git").to_string();
             let repo = crate::database::repositories::upsert_repository(
                 &pool, &owner, &name, None,
             ).await?;
@@ -79,7 +80,8 @@ pub async fn handle_repository(command: RepositoryCommands) -> anyhow::Result<()
             }
         }
         RepositoryCommands::Remove { repo } => {
-            let (owner, name) = parse_repo(&repo)?;
+            let (owner, mut name) = parse_repo(&repo)?;
+            name = name.trim_end_matches(".git").to_string();
             if let Some(r) = crate::database::repositories::get_repository_by_owner_name(&pool, &owner, &name).await? {
                 crate::database::repositories::delete_repository(&pool, r.id).await?;
                 println!("Stopped watching {}/{}", owner, name);
