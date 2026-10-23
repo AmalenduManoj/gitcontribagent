@@ -21,7 +21,7 @@ pub async fn upsert_repository(
         INSERT INTO repositories (owner, name, github_repo_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (owner, name) DO UPDATE SET github_repo_id = EXCLUDED.github_repo_id, updated_at = NOW()
-        RETURNING id, owner, name, github_repo_id
+        RETURNING id, owner, name, github_repo_id, last_polled_at
         "#,
     )
     .bind(owner)
@@ -38,7 +38,7 @@ pub async fn get_repository_by_owner_name(
     name: &str,
 ) -> anyhow::Result<Option<Repository>> {
     let repo = sqlx::query_as::<_, Repository>(
-        r#"SELECT id, owner, name, github_repo_id FROM repositories WHERE owner = $1 AND name = $2"#,
+        r#"SELECT id, owner, name, github_repo_id, last_polled_at FROM repositories WHERE owner = $1 AND name = $2"#,
     )
     .bind(owner)
     .bind(name)
@@ -49,7 +49,7 @@ pub async fn get_repository_by_owner_name(
 
 pub async fn get_repository_by_id(pool: &PgPool, id: i64) -> anyhow::Result<Option<Repository>> {
     let repo = sqlx::query_as::<_, Repository>(
-        r#"SELECT id, owner, name, github_repo_id FROM repositories WHERE id = $1"#,
+        r#"SELECT id, owner, name, github_repo_id, last_polled_at FROM repositories WHERE id = $1"#,
     )
     .bind(id)
     .fetch_optional(pool)
@@ -67,7 +67,7 @@ pub async fn update_last_polled_at(pool: &PgPool, id: i64) -> anyhow::Result<()>
 
 pub async fn list_repositories(pool: &PgPool) -> anyhow::Result<Vec<Repository>> {
     let repos = sqlx::query_as::<_, Repository>(
-        r#"SELECT id, owner, name, github_repo_id FROM repositories ORDER BY owner, name"#,
+        r#"SELECT id, owner, name, github_repo_id, last_polled_at FROM repositories ORDER BY owner, name"#,
     )
     .fetch_all(pool)
     .await?;

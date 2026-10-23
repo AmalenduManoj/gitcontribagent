@@ -49,8 +49,8 @@ pub async fn post_comment(
 pub fn router(state: AppState) -> axum::Router {
     axum::Router::new()
         .route("/health", get(health_check))
-        .route("/issues/:id/generate-comment", post(generate_comment))
-        .route("/issues/:id/approve-comment", post(approve_comment))
-        .route("/issues/:id/post-comment", post(post_comment))
+        .route("/issues/{id}/generate-comment", post(generate_comment))
+        .route("/issues/{id}/approve-comment", post(approve_comment))
+        .route("/issues/{id}/post-comment", post(post_comment))
         .with_state(state)
 }
