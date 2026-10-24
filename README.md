@@ -224,7 +224,7 @@ github-contri-agent/
 - `rig::agent::AgentBuilder` — `.preamble(str).context(str).temperature(f64).build() -> Agent`
 - `rig::extractor::ExtractorBuilder<T>` — `.preamble(str).context(str).retries(u64).build() -> Extractor<T>`
 - `rig::extractor::Extractor<T>` — `.extract(text) -> Result<T, ExtractionError>` (structured output via tool call)
-- `rig::providers::openai::Client` — `Client::from_env()` or `Client::new(api_key)`
+- `rig::providers::ollama::Client` — `Client::builder().api_key(...).base_url(...).build()`
 - `rig::completion::Message` — prompt message type
 
 ---
@@ -270,9 +270,11 @@ DATABASE_URL=postgres://user:pass@localhost:5432/github_agent
 GITHUB_TOKEN=ghp_xxx              # Personal access token (read-only for MVP)
 GITHUB_WEBHOOK_SECRET=secret      # Webhook secret for HMAC validation
 
-# LLM (OpenAI)
-OPENAI_API_KEY=sk-xxx
-OPENAI_MODEL=gpt-4o
+# LLM (Ollama + Qwen 2.5 — free, local, excellent tool calling)
+# Install Ollama: curl -fsSL https://ollama.com/install.sh | sh
+# Pull model: ollama pull qwen2.5:14b
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:14b
 
 # Email (SMTP)
 SMTP_HOST=smtp.gmail.com
@@ -347,12 +349,34 @@ github_comments(id, approval_action_id, github_comment_id, issue_id, body, creat
 
 ## LLM Configuration
 
-The default provider is OpenAI, accessed through Rig's `AgentClientExt`.
+The default provider is **Ollama** with **Qwen 2.5**, which runs locally for free.
 
-- Set `OPENAI_API_KEY` in `.env`
-- Set `OPENAI_MODEL` (e.g., `gpt-4o`, `gpt-4o-mini`)
+### Prerequisites
 
-The `LlmProvider` trait abstracts the model provider so other providers (Anthropic, etc.) can be added later without changing agent code.
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull Qwen 2.5 (14B recommended for analysis quality)
+ollama pull qwen2.5:14b
+```
+
+### Configuration
+
+- `OLLAMA_BASE_URL` — Ollama server URL (default: `http://localhost:11434`)
+- `OLLAMA_MODEL` — Model to use (default: `qwen2.5:14b`)
+
+### Model Size Recommendations
+
+| Model | RAM needed | Speed | Quality |
+|---|---|---|---|
+| `qwen2.5:7b` | ~5GB | Fast | Good |
+| `qwen2.5:14b` | ~9GB | Medium | Better |
+| `qwen2.5:32b` | ~20GB | Slow | Best |
+
+Qwen 2.5 has excellent tool calling support, which is required for Rig's structured `Extractor` output.
+
+The `LlmProvider` trait abstracts the model provider so other providers (OpenAI, Anthropic, Groq) can be added later without changing agent code.
 
 ### Prompt safety
 

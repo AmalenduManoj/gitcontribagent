@@ -1,6 +1,6 @@
 use rig::agent::Agent;
 use rig::prelude::*;
-use rig::providers::openai;
+use rig::providers::ollama;
 
 use crate::error::AppError;
 use crate::models::issue::IssueAnalysis;
@@ -10,7 +10,7 @@ pub struct CommentGenerationAgent {
 }
 
 impl CommentGenerationAgent {
-    pub fn new(client: &openai::Client, model: &str) -> Self {
+    pub fn new(client: &ollama::Client, model: &str) -> Self {
         let agent = client
             .agent(model)
             .preamble(include_str!("../../prompts/comment_generation.txt"))

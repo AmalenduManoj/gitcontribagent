@@ -32,6 +32,8 @@ fn test_config() -> Config {
         ignored_users: ["bot-user"].iter().map(|s| s.to_string()).collect(),
         poll_interval_secs: 300,
         poll_enabled: true,
+        ollama_base_url: "http://localhost:11434".into(),
+        ollama_model: "qwen2.5:14b".into(),
     }
 }
 

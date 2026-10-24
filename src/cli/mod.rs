@@ -142,10 +142,14 @@ pub async fn handle_issue(command: IssueCommands) -> anyhow::Result<()> {
 
             let _github = crate::github::client::GitHubClientImpl::new(config.github_token.clone());
             let github = std::sync::Arc::new(crate::github::client::GitHubClientImpl::new(config.github_token.clone()));
+            let ollama_client = rig::providers::ollama::Client::builder()
+                .api_key(rig::providers::ollama::OllamaApiKey::from(""))
+                .base_url(&config.ollama_base_url)
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to create Ollama client: {}", e))?;
             let analysis_agent = crate::agents::issue_analysis::IssueAnalysisAgent::new(
-                &rig::providers::openai::Client::new(config.openai_api_key.clone())
-                    .map_err(|e| anyhow::anyhow!("Failed to create OpenAI client: {}", e))?,
-                &config.openai_model,
+                &ollama_client,
+                &config.ollama_model,
             );
             let context_agent = crate::agents::repository_context::RepositoryContextAgent::new(github.clone());
             let repo_context = context_agent.gather_context(&owner, &name, &github.get_issue(&owner, &name, number).await?).await?;
@@ -156,9 +160,8 @@ pub async fn handle_issue(command: IssueCommands) -> anyhow::Result<()> {
             analysis_agent.analyze(&issue_context, &repo_context).await?;
 
             let comment_agent = crate::agents::comment_generation::CommentGenerationAgent::new(
-                &rig::providers::openai::Client::new(config.openai_api_key.clone())
-                    .map_err(|e| anyhow::anyhow!("Failed to create OpenAI client: {}", e))?,
-                &config.openai_model,
+                &ollama_client,
+                &config.ollama_model,
             );
             let result = crate::services::analysis_service::generate_comment(&pool, &comment_agent, db_issue.id).await?;
 

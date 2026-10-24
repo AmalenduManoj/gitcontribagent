@@ -1,6 +1,6 @@
 use rig::extractor::Extractor;
 use rig::prelude::*;
-use rig::providers::openai;
+use rig::providers::ollama;
 
 use crate::error::AppError;
 use crate::models::issue::IssueAnalysis;
@@ -10,7 +10,7 @@ pub struct IssueAnalysisAgent {
 }
 
 impl IssueAnalysisAgent {
-    pub fn new(client: &openai::Client, model: &str) -> Self {
+    pub fn new(client: &ollama::Client, model: &str) -> Self {
         let extractor = client
             .extractor::<IssueAnalysis>(model)
             .preamble(include_str!("../../prompts/issue_analysis.txt"))
