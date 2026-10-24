@@ -157,7 +157,9 @@ pub async fn handle_issue(command: IssueCommands) -> anyhow::Result<()> {
             let gh_issue = github.get_issue(&owner, &name, number).await?;
             let issue_context = format!("Title: {}\nBody: {}", gh_issue.title, gh_issue.body.as_deref().unwrap_or("(empty)"));
 
-            analysis_agent.analyze(&issue_context, &repo_context).await?;
+            let analysis = analysis_agent.analyze(&issue_context, &repo_context).await?;
+            crate::database::analyses::save_analysis(&pool, db_issue.id, &analysis, None).await?;
+            println!("Analysis saved (complexity: {:?})", analysis.complexity);
 
             let comment_agent = crate::agents::comment_generation::CommentGenerationAgent::new(
                 &ollama_client,
