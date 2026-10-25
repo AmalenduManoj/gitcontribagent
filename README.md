@@ -41,6 +41,53 @@ GitHub Polling (every 5 min)
   Optional GitHubAction  (post comment ONLY after approval)
 ```
 
+## Installation
+
+### One-Line Install (coming soon)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/your-username/github-contribution-agent/main/install.sh | bash
+```
+
+### Manual Install
+
+```bash
+# 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5:7b
+
+# 2. Clone and build
+git clone https://github.com/your-username/github-contribution-agent.git
+cd github-contribution-agent
+cargo build --release
+
+# 3. Run setup wizard (auto-detects Ollama, creates config)
+./target/release/github-agent setup
+
+# 4. Edit config with your tokens
+nano ~/.config/github-agent/.env
+
+# 5. Run migrations and start
+./target/release/github-agent db migrate
+./target/release/github-agent serve
+```
+
+### Auto-Start on Boot
+
+```bash
+# Install as systemd service (auto-starts on every boot)
+sudo cp target/release/github-agent /usr/local/bin/
+github-agent service install
+github-agent service start
+
+# Check status
+github-agent service status
+
+# Stop/uninstall
+github-agent service stop
+github-agent service uninstall
+```
+
 ## Quick Start
 
 ### Prerequisites
@@ -125,8 +172,18 @@ cargo run -- repository add rust-lang/rust
 ## CLI Usage
 
 ```bash
+# Setup wizard (first-time configuration)
+github-agent setup
+
 # Start the server
 github-agent serve
+
+# Systemd service management
+github-agent service install
+github-agent service start
+github-agent service stop
+github-agent service status
+github-agent service uninstall
 
 # Repository management
 github-agent repository add owner/repo

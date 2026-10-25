@@ -13,6 +13,13 @@ pub struct Cli {
 pub enum Commands {
     /// Start the Axum server
     Serve,
+    /// Interactive setup wizard
+    Setup,
+    /// Systemd service management
+    Service {
+        #[command(subcommand)]
+        command: ServiceCommands,
+    },
     /// Database commands
     Db {
         #[command(subcommand)]
@@ -28,6 +35,20 @@ pub enum Commands {
         #[command(subcommand)]
         command: IssueCommands,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ServiceCommands {
+    /// Install as systemd service (auto-start on boot)
+    Install,
+    /// Start the service
+    Start,
+    /// Stop the service
+    Stop,
+    /// Show service status
+    Status,
+    /// Uninstall the service
+    Uninstall,
 }
 
 #[derive(Subcommand)]
@@ -219,4 +240,142 @@ fn parse_issue_ref(issue: &str) -> anyhow::Result<(String, String, i32)> {
     let (owner, name) = parse_repo(parts[0])?;
     let number: i32 = parts[1].parse().map_err(|_| anyhow::anyhow!("Invalid issue number '{}'", parts[1]))?;
     Ok((owner, name, number))
+}
+
+pub async fn handle_setup() -> anyhow::Result<()> {
+    println!("=== GitHub Contribution Agent Setup ===\n");
+
+    // Check Ollama
+    if crate::agents::ollama_setup::is_ollama_installed() {
+        println!("✅ Ollama is installed");
+    } else {
+        println!("❌ Ollama is not installed.");
+        println!("   Install with: curl -fsSL https://ollama.com/install.sh | sh");
+        println!("   Then re-run: github-agent setup");
+        return Ok(());
+    }
+
+    let base_url = "http://localhost:11434";
+    if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+        println!("✅ Ollama server is running");
+    } else {
+        println!("Starting Ollama server...");
+        crate::agents::ollama_setup::start_ollama_server()?;
+        for _ in 0..10 {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+                break;
+            }
+        }
+        if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+            println!("✅ Ollama server started");
+        } else {
+            println!("❌ Ollama server failed to start");
+            return Ok(());
+        }
+    }
+
+    let model = "qwen2.5:7b";
+    if crate::agents::ollama_setup::is_model_available(base_url, model).await {
+        println!("✅ Model {} is available", model);
+    } else {
+        println!("Pulling model {}...", model);
+        crate::agents::ollama_setup::pull_model(base_url, model).await?;
+    }
+
+    // Create config directory
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("github-agent");
+    std::fs::create_dir_all(&config_dir)?;
+
+    let env_path = config_dir.join(".env");
+    if env_path.exists() {
+        println!("\nConfig already exists at {}", env_path.display());
+    } else {
+        println!("\nCreating config at {}", env_path.display());
+        let template = include_str!("../../.env.example");
+        std::fs::write(&env_path, template)?;
+    }
+
+    println!("\n✅ Setup complete!");
+    println!("Next steps:");
+    println!("  1. Edit {} with your tokens", env_path.display());
+    println!("  2. Run: github-agent db migrate");
+    println!("  3. Run: github-agent serve");
+    println!("  4. Run: github-agent service install (for auto-start on boot)");
+
+    Ok(())
+}
+
+pub async fn handle_service(command: ServiceCommands) -> anyhow::Result<()> {
+    match command {
+        ServiceCommands::Install => {
+            println!("Installing systemd service...");
+            let service_content = r#"[Unit]
+Description=GitHub Contribution Agent
+After=docker.service ollama.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/bash -c 'until docker compose exec -T postgres pg_isready -U agent; do sleep 2; done'
+ExecStartPre=/bin/bash -c 'until curl -s http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
+ExecStart=/usr/local/bin/github-agent serve
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+"#;
+            let service_path = "/etc/systemd/system/github-agent.service";
+            std::fs::write(service_path, service_content)?;
+            std::process::Command::new("systemctl")
+                .args(["daemon-reload"])
+                .status()?;
+            std::process::Command::new("systemctl")
+                .args(["enable", "github-agent"])
+                .status()?;
+            std::process::Command::new("systemctl")
+                .args(["enable", "ollama"])
+                .status()
+                .ok();
+            println!("✅ Service installed and enabled (auto-start on boot)");
+            println!("   Start with: github-agent service start");
+        }
+        ServiceCommands::Start => {
+            std::process::Command::new("systemctl")
+                .args(["start", "github-agent"])
+                .status()?;
+            println!("✅ Service started");
+        }
+        ServiceCommands::Stop => {
+            std::process::Command::new("systemctl")
+                .args(["stop", "github-agent"])
+                .status()?;
+            println!("✅ Service stopped");
+        }
+        ServiceCommands::Status => {
+            std::process::Command::new("systemctl")
+                .args(["status", "github-agent"])
+                .status()?;
+        }
+        ServiceCommands::Uninstall => {
+            std::process::Command::new("systemctl")
+                .args(["stop", "github-agent"])
+                .status()
+                .ok();
+            std::process::Command::new("systemctl")
+                .args(["disable", "github-agent"])
+                .status()
+                .ok();
+            std::fs::remove_file("/etc/systemd/system/github-agent.service").ok();
+            std::process::Command::new("systemctl")
+                .args(["daemon-reload"])
+                .status()
+                .ok();
+            println!("✅ Service uninstalled");
+        }
+    }
+    Ok(())
 }
