@@ -41,6 +41,8 @@ GitHub Polling (every 5 min)
   Optional GitHubAction  (post comment ONLY after approval)
 ```
 
+---
+
 ## Installation
 
 ### One-Line Install
@@ -48,6 +50,8 @@ GitHub Polling (every 5 min)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/your-username/github-contribution-agent/main/install.sh | bash
 ```
+
+This installs Ollama, pulls Qwen 2.5 7B, builds the binary, and runs the setup wizard.
 
 ### Manual Install
 
@@ -88,73 +92,14 @@ github-agent service stop
 github-agent service uninstall
 ```
 
-## Quick Start
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/) 1.95+
-- [Docker](https://docs.docker.com/get-docker/) (for PostgreSQL)
-- [Ollama](https://ollama.com/) (for local LLM)
-
-### 1. Install Ollama + Qwen 2.5
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull qwen2.5:14b
-```
-
-### 2. Configure
-
-```bash
-git clone https://github.com/your-username/github-contribution-agent.git
-cd github-contribution-agent
-cp .env.example .env
-```
-
-Edit `.env` with your settings:
-
-```env
-GITHUB_TOKEN=ghp_xxx              # Read-only PAT is fine for analysis
-DATABASE_URL=postgres://agent:agent@localhost:5432/github_agent
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2.5:14b
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=you@gmail.com
-SMTP_PASSWORD=app_password
-SMTP_FROM=you@gmail.com
-NOTIFICATION_EMAIL=you@gmail.com
-```
-
-### 3. Run
-
-```bash
-# Start PostgreSQL
-docker compose up -d postgres
-
-# Run migrations
-cargo run -- db migrate
-
-# Start the agent
-cargo run -- serve
-```
-
-Server starts on `http://localhost:8080`. Polling begins automatically every 5 minutes.
-
-### 4. Watch a repository
-
-```bash
-cargo run -- repository add rust-lang/rust
-```
-
-## Configuration
+### Configuration
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GITHUB_TOKEN` | Yes | — | GitHub personal access token (read-only for analysis) |
+| `GITHUB_TOKEN` | Yes | — | GitHub personal access token (read-only for analysis, write for posting comments) |
 | `DATABASE_URL` | Yes | — | PostgreSQL connection string |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | No | `qwen2.5:14b` | Model to use for analysis |
+| `OLLAMA_MODEL` | No | `qwen2.5:7b` | Model to use for analysis |
 | `SMTP_HOST` | No | — | SMTP server (for email notifications) |
 | `SMTP_PORT` | No | `587` | SMTP port |
 | `SMTP_USER` | No | — | SMTP username |
@@ -169,16 +114,44 @@ cargo run -- repository add rust-lang/rust
 | `PORT` | No | `8080` | Server port |
 | `RUST_LOG` | No | `info` | Log level |
 
+---
+
+## Quick Start
+
+### 1. Add a repository
+
+```bash
+github-agent repository add owner/repo
+```
+
+### 2. Start the agent
+
+```bash
+github-agent serve
+```
+
+The agent polls GitHub every 5 minutes (configurable via `POLL_INTERVAL_SECS`).
+
+### 3. Analyze an issue
+
+```bash
+github-agent issue analyze owner/repo#123
+```
+
+### 4. Generate and post a comment
+
+```bash
+github-agent issue comment owner/repo#123          # generate (stored as pending)
+github-agent issue comment-approve owner/repo#123  # approve
+github-agent issue comment-post owner/repo#123     # post to GitHub
+```
+
 ## CLI Usage
 
 ```bash
-# Setup wizard (first-time configuration)
+# Setup and service
 github-agent setup
-
-# Start the server
 github-agent serve
-
-# Systemd service management
 github-agent service install
 github-agent service start
 github-agent service stop
@@ -193,15 +166,13 @@ github-agent repository remove owner/repo
 # Issue workflow
 github-agent issue list
 github-agent issue analyze owner/repo#123
-github-agent issue comment owner/repo#123          # generate (no post)
-github-agent issue comment-approve owner/repo#123  # approve
-github-agent issue comment-post owner/repo#123     # post to GitHub
+github-agent issue comment owner/repo#123
+github-agent issue comment-approve owner/repo#123
+github-agent issue comment-post owner/repo#123
 
 # Database
 github-agent db migrate
 ```
-
-**The CLI never silently performs a public action.** `comment` generates, `comment-approve` approves, `comment-post` posts — three separate commands.
 
 ## API Endpoints
 
@@ -300,13 +271,53 @@ cargo test
 
 No real LLM or GitHub API calls in tests.
 
+---
+
 ## Contributing
 
+This project welcomes contributions. To contribute:
+
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Make your changes
 4. Run `cargo test` and `cargo check`
 5. Submit a pull request
+
+### Development Setup
+
+```bash
+# Clone
+git clone https://github.com/your-username/github-contribution-agent.git
+cd github-contribution-agent
+
+# Install dependencies
+cargo build
+
+# Run tests
+cargo test
+
+# Run the agent locally
+cargo run -- serve
+```
+
+### Project Structure
+
+```
+src/
+├── main.rs                  # Binary entry point
+├── lib.rs                   # Library root
+├── config.rs                # Environment configuration
+├── error.rs                 # Error types
+├── cli/                     # CLI commands (clap)
+├── api/                     # Axum HTTP server + routes
+├── github/                  # GitHub API client + webhook parsing
+├── agents/                  # Rig-based AI agents
+├── notifications/           # Email notification provider
+├── approval/                # Approval state machine
+├── database/                # PostgreSQL CRUD (SQLx)
+├── models/                  # Data structures
+└── services/                # Business logic (filtering, analysis, polling)
+```
 
 ## License
 
