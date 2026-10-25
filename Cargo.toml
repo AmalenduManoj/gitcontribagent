@@ -49,8 +49,10 @@ sha2 = "0.11"
 hex = "0.4"
 base64 = "0.22"
 
-# OpenAPI
-utoipa = { version = "5", features = ["axum_extras"] }
+# Interactive prompts
+dialoguer = "0.11"
+indicatif = "0.17"
+dirs = "5"
 
 # Agent framework
 rig = { version = "0.42", features = ["agent"] }

@@ -13,6 +13,13 @@ pub struct Cli {
 pub enum Commands {
     /// Start the Axum server
     Serve,
+    /// Interactive setup wizard
+    Setup,
+    /// Systemd service management
+    Service {
+        #[command(subcommand)]
+        command: ServiceCommands,
+    },
     /// Database commands
     Db {
         #[command(subcommand)]
@@ -28,6 +35,20 @@ pub enum Commands {
         #[command(subcommand)]
         command: IssueCommands,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ServiceCommands {
+    /// Install as systemd service (auto-start on boot)
+    Install,
+    /// Start the service
+    Start,
+    /// Stop the service
+    Stop,
+    /// Show service status
+    Status,
+    /// Uninstall the service
+    Uninstall,
 }
 
 #[derive(Subcommand)]
@@ -219,4 +240,238 @@ fn parse_issue_ref(issue: &str) -> anyhow::Result<(String, String, i32)> {
     let (owner, name) = parse_repo(parts[0])?;
     let number: i32 = parts[1].parse().map_err(|_| anyhow::anyhow!("Invalid issue number '{}'", parts[1]))?;
     Ok((owner, name, number))
+}
+
+pub async fn handle_setup() -> anyhow::Result<()> {
+    use dialoguer::{Input, Password, Confirm};
+
+    println!("=== GitHub Contribution Agent Setup ===\n");
+
+    // Check Ollama
+    if crate::agents::ollama_setup::is_ollama_installed() {
+        println!("✅ Ollama is installed");
+    } else {
+        println!("❌ Ollama is not installed.");
+        println!("   Install with: curl -fsSL https://ollama.com/install.sh | sh");
+        println!("   Then re-run: github-agent setup");
+        return Ok(());
+    }
+
+    let base_url = "http://localhost:11434";
+    if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+        println!("✅ Ollama server is running");
+    } else {
+        println!("Starting Ollama server...");
+        crate::agents::ollama_setup::start_ollama_server()?;
+        for _ in 0..10 {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+                break;
+            }
+        }
+        if crate::agents::ollama_setup::is_ollama_running(base_url).await {
+            println!("✅ Ollama server started");
+        } else {
+            println!("❌ Ollama server failed to start");
+            return Ok(());
+        }
+    }
+
+    let model = "qwen2.5:7b";
+    if crate::agents::ollama_setup::is_model_available(base_url, model).await {
+        println!("✅ Model {} is available", model);
+    } else {
+        println!("Pulling model {}...", model);
+        crate::agents::ollama_setup::pull_model(base_url, model).await?;
+    }
+
+    // Interactive prompts
+    println!("\n--- Configuration ---\n");
+
+    let github_token: String = Input::new()
+        .with_prompt("GitHub Personal Access Token (read-only is fine)")
+        .interact_text()?;
+
+    let repos_input: String = Input::new()
+        .with_prompt("Repositories to watch (comma-separated, e.g. owner/repo1,owner/repo2)")
+        .interact_text()?;
+
+    let notification_email: String = Input::new()
+        .with_prompt("Email for notifications")
+        .interact_text()?;
+
+    let smtp_host: String = Input::new()
+        .with_prompt("SMTP host")
+        .default("smtp.gmail.com".to_string())
+        .interact_text()?;
+
+    let smtp_user: String = Input::new()
+        .with_prompt("SMTP username (email)")
+        .default(notification_email.clone())
+        .interact_text()?;
+
+    let smtp_password: String = Password::new()
+        .with_prompt("SMTP password (app password)")
+        .interact()?;
+
+    let setup_smtp = Confirm::new()
+        .with_prompt("Configure SMTP now?")
+        .default(true)
+        .interact()?;
+
+    let database_url: String = Input::new()
+        .with_prompt("PostgreSQL connection URL")
+        .default("postgres://agent:agent@localhost:5432/github_agent".to_string())
+        .interact_text()?;
+
+    // Create config directory
+    let config_dir = dirs::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("github-agent");
+    std::fs::create_dir_all(&config_dir)?;
+
+    let env_path = config_dir.join(".env");
+
+    // Build .env content
+    let mut env_content = String::new();
+    env_content.push_str("# Server\n");
+    env_content.push_str("HOST=0.0.0.0\n");
+    env_content.push_str("PORT=8080\n\n");
+    env_content.push_str("# Database\n");
+    env_content.push_str(&format!("DATABASE_URL={}\n\n", database_url));
+    env_content.push_str("# GitHub\n");
+    env_content.push_str(&format!("GITHUB_TOKEN={}\n", github_token));
+    env_content.push_str("GITHUB_WEBHOOK_SECRET=secret\n\n");
+    env_content.push_str("# LLM (Ollama + Qwen 2.5)\n");
+    env_content.push_str("OLLAMA_BASE_URL=http://localhost:11434\n");
+    env_content.push_str("OLLAMA_MODEL=qwen2.5:7b\n\n");
+
+    if setup_smtp {
+        env_content.push_str("# Email (SMTP)\n");
+        env_content.push_str(&format!("SMTP_HOST={}\n", smtp_host));
+        env_content.push_str("SMTP_PORT=587\n");
+        env_content.push_str(&format!("SMTP_USER={}\n", smtp_user));
+        env_content.push_str(&format!("SMTP_PASSWORD={}\n", smtp_password));
+        env_content.push_str(&format!("SMTP_FROM={}\n", smtp_user));
+        env_content.push_str(&format!("NOTIFICATION_EMAIL={}\n\n", notification_email));
+    }
+
+    env_content.push_str("# App\n");
+    env_content.push_str("CONTRIBUTION_LABELS=good first issue,good-first-issue,first issue,beginner,help wanted\n");
+    env_content.push_str("IGNORED_USERS=\n");
+    env_content.push_str("POLL_INTERVAL_SECS=300\n");
+    env_content.push_str("POLL_ENABLED=true\n");
+    env_content.push_str("RUST_LOG=info\n");
+
+    std::fs::write(&env_path, &env_content)?;
+
+    println!("\n✅ Config written to {}", env_path.display());
+
+    // Test database connection
+    println!("\nTesting database connection...");
+    match crate::database::create_pool(&database_url).await {
+        Ok(pool) => {
+            println!("✅ Database connected");
+            crate::database::run_migrations(&pool).await?;
+            println!("✅ Migrations applied");
+
+            // Add repositories
+            for repo in repos_input.split(',') {
+                let repo = repo.trim();
+                if repo.is_empty() { continue; }
+                let parts: Vec<&str> = repo.split('/').collect();
+                if parts.len() == 2 {
+                    crate::database::repositories::upsert_repository(&pool, parts[0], parts[1], None).await?;
+                    println!("✅ Watching {}/{}", parts[0], parts[1]);
+                } else {
+                    println!("⚠️  Skipping invalid repo format: {}", repo);
+                }
+            }
+            pool.close().await;
+        }
+        Err(e) => {
+            println!("❌ Database connection failed: {}", e);
+            println!("   Make sure PostgreSQL is running and the URL is correct.");
+        }
+    }
+
+    println!("\n✅ Setup complete!");
+    println!("\nNext steps:");
+    println!("  1. Run: github-agent serve");
+    println!("  2. Run: github-agent service install (for auto-start on boot)");
+    println!("  3. Check email for issue analysis notifications");
+
+    Ok(())
+}
+
+pub async fn handle_service(command: ServiceCommands) -> anyhow::Result<()> {
+    match command {
+        ServiceCommands::Install => {
+            println!("Installing systemd service...");
+            let service_content = r#"[Unit]
+Description=GitHub Contribution Agent
+After=docker.service ollama.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/bash -c 'until docker compose exec -T postgres pg_isready -U agent; do sleep 2; done'
+ExecStartPre=/bin/bash -c 'until curl -s http://localhost:11434/api/tags > /dev/null; do sleep 2; done'
+ExecStart=/usr/local/bin/github-agent serve
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+"#;
+            let service_path = "/etc/systemd/system/github-agent.service";
+            std::fs::write(service_path, service_content)?;
+            std::process::Command::new("systemctl")
+                .args(["daemon-reload"])
+                .status()?;
+            std::process::Command::new("systemctl")
+                .args(["enable", "github-agent"])
+                .status()?;
+            std::process::Command::new("systemctl")
+                .args(["enable", "ollama"])
+                .status()
+                .ok();
+            println!("✅ Service installed and enabled (auto-start on boot)");
+            println!("   Start with: github-agent service start");
+        }
+        ServiceCommands::Start => {
+            std::process::Command::new("systemctl")
+                .args(["start", "github-agent"])
+                .status()?;
+            println!("✅ Service started");
+        }
+        ServiceCommands::Stop => {
+            std::process::Command::new("systemctl")
+                .args(["stop", "github-agent"])
+                .status()?;
+            println!("✅ Service stopped");
+        }
+        ServiceCommands::Status => {
+            std::process::Command::new("systemctl")
+                .args(["status", "github-agent"])
+                .status()?;
+        }
+        ServiceCommands::Uninstall => {
+            std::process::Command::new("systemctl")
+                .args(["stop", "github-agent"])
+                .status()
+                .ok();
+            std::process::Command::new("systemctl")
+                .args(["disable", "github-agent"])
+                .status()
+                .ok();
+            std::fs::remove_file("/etc/systemd/system/github-agent.service").ok();
+            std::process::Command::new("systemctl")
+                .args(["daemon-reload"])
+                .status()
+                .ok();
+            println!("✅ Service uninstalled");
+        }
+    }
+    Ok(())
 }

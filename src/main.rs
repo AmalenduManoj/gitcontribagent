@@ -18,6 +18,12 @@ async fn main() -> anyhow::Result<()> {
         Commands::Serve => {
             github_contribution_agent::api::serve().await?;
         }
+        Commands::Setup => {
+            github_contribution_agent::cli::handle_setup().await?;
+        }
+        Commands::Service { command } => {
+            github_contribution_agent::cli::handle_service(command).await?;
+        }
         Commands::Db { command } => {
             github_contribution_agent::database::run_migration_command(command).await?;
         }

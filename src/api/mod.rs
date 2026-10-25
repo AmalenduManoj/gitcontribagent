@@ -12,6 +12,11 @@ pub async fn serve() -> anyhow::Result<()> {
     let pool = database::create_pool(&config.database_url).await?;
     database::run_migrations(&pool).await?;
 
+    // Ensure Ollama is running and model is available
+    if let Err(e) = crate::agents::ollama_setup::ensure_ollama_ready(&config.ollama_base_url, &config.ollama_model).await {
+        tracing::warn!("Ollama setup issue: {}", e);
+    }
+
     let github: Arc<dyn GitHubClient> = Arc::new(GitHubClientImpl::new(config.github_token.clone()));
     let state = routes::AppState { pool: pool.clone(), github: github.clone() };
 
