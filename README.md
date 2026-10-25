@@ -43,7 +43,7 @@ GitHub Polling (every 5 min)
 
 ## Installation
 
-### One-Line Install (coming soon)
+### One-Line Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/your-username/github-contribution-agent/main/install.sh | bash
