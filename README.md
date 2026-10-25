@@ -48,7 +48,7 @@ GitHub Polling (every 5 min)
 ### One-Line Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-username/github-contribution-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AmalenduManoj/github-contribution-agent/main/install.sh | bash
 ```
 
 This installs Ollama, pulls Qwen 2.5 7B, builds the binary, and runs the setup wizard.
@@ -61,7 +61,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen2.5:7b
 
 # 2. Clone and build
-git clone https://github.com/your-username/github-contribution-agent.git
+git clone https://github.com/AmalenduManoj/github-contribution-agent.git
 cd github-contribution-agent
 cargo build --release
 
@@ -287,7 +287,7 @@ This project welcomes contributions. To contribute:
 
 ```bash
 # Clone
-git clone https://github.com/your-username/github-contribution-agent.git
+git clone https://github.com/AmalenduManoj/github-contribution-agent.git
 cd github-contribution-agent
 
 # Install dependencies
