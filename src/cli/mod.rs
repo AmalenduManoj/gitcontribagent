@@ -243,6 +243,8 @@ fn parse_issue_ref(issue: &str) -> anyhow::Result<(String, String, i32)> {
 }
 
 pub async fn handle_setup() -> anyhow::Result<()> {
+    use dialoguer::{Input, Password, Confirm};
+
     println!("=== GitHub Contribution Agent Setup ===\n");
 
     // Check Ollama
@@ -283,6 +285,45 @@ pub async fn handle_setup() -> anyhow::Result<()> {
         crate::agents::ollama_setup::pull_model(base_url, model).await?;
     }
 
+    // Interactive prompts
+    println!("\n--- Configuration ---\n");
+
+    let github_token: String = Input::new()
+        .with_prompt("GitHub Personal Access Token (read-only is fine)")
+        .interact_text()?;
+
+    let repos_input: String = Input::new()
+        .with_prompt("Repositories to watch (comma-separated, e.g. owner/repo1,owner/repo2)")
+        .interact_text()?;
+
+    let notification_email: String = Input::new()
+        .with_prompt("Email for notifications")
+        .interact_text()?;
+
+    let smtp_host: String = Input::new()
+        .with_prompt("SMTP host")
+        .default("smtp.gmail.com".to_string())
+        .interact_text()?;
+
+    let smtp_user: String = Input::new()
+        .with_prompt("SMTP username (email)")
+        .default(notification_email.clone())
+        .interact_text()?;
+
+    let smtp_password: String = Password::new()
+        .with_prompt("SMTP password (app password)")
+        .interact()?;
+
+    let setup_smtp = Confirm::new()
+        .with_prompt("Configure SMTP now?")
+        .default(true)
+        .interact()?;
+
+    let database_url: String = Input::new()
+        .with_prompt("PostgreSQL connection URL")
+        .default("postgres://agent:agent@localhost:5432/github_agent".to_string())
+        .interact_text()?;
+
     // Create config directory
     let config_dir = dirs::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
@@ -290,20 +331,75 @@ pub async fn handle_setup() -> anyhow::Result<()> {
     std::fs::create_dir_all(&config_dir)?;
 
     let env_path = config_dir.join(".env");
-    if env_path.exists() {
-        println!("\nConfig already exists at {}", env_path.display());
-    } else {
-        println!("\nCreating config at {}", env_path.display());
-        let template = include_str!("../../.env.example");
-        std::fs::write(&env_path, template)?;
+
+    // Build .env content
+    let mut env_content = String::new();
+    env_content.push_str("# Server\n");
+    env_content.push_str("HOST=0.0.0.0\n");
+    env_content.push_str("PORT=8080\n\n");
+    env_content.push_str("# Database\n");
+    env_content.push_str(&format!("DATABASE_URL={}\n\n", database_url));
+    env_content.push_str("# GitHub\n");
+    env_content.push_str(&format!("GITHUB_TOKEN={}\n", github_token));
+    env_content.push_str("GITHUB_WEBHOOK_SECRET=secret\n\n");
+    env_content.push_str("# LLM (Ollama + Qwen 2.5)\n");
+    env_content.push_str("OLLAMA_BASE_URL=http://localhost:11434\n");
+    env_content.push_str("OLLAMA_MODEL=qwen2.5:7b\n\n");
+
+    if setup_smtp {
+        env_content.push_str("# Email (SMTP)\n");
+        env_content.push_str(&format!("SMTP_HOST={}\n", smtp_host));
+        env_content.push_str("SMTP_PORT=587\n");
+        env_content.push_str(&format!("SMTP_USER={}\n", smtp_user));
+        env_content.push_str(&format!("SMTP_PASSWORD={}\n", smtp_password));
+        env_content.push_str(&format!("SMTP_FROM={}\n", smtp_user));
+        env_content.push_str(&format!("NOTIFICATION_EMAIL={}\n\n", notification_email));
+    }
+
+    env_content.push_str("# App\n");
+    env_content.push_str("CONTRIBUTION_LABELS=good first issue,good-first-issue,first issue,beginner,help wanted\n");
+    env_content.push_str("IGNORED_USERS=\n");
+    env_content.push_str("POLL_INTERVAL_SECS=300\n");
+    env_content.push_str("POLL_ENABLED=true\n");
+    env_content.push_str("RUST_LOG=info\n");
+
+    std::fs::write(&env_path, &env_content)?;
+
+    println!("\n✅ Config written to {}", env_path.display());
+
+    // Test database connection
+    println!("\nTesting database connection...");
+    match crate::database::create_pool(&database_url).await {
+        Ok(pool) => {
+            println!("✅ Database connected");
+            crate::database::run_migrations(&pool).await?;
+            println!("✅ Migrations applied");
+
+            // Add repositories
+            for repo in repos_input.split(',') {
+                let repo = repo.trim();
+                if repo.is_empty() { continue; }
+                let parts: Vec<&str> = repo.split('/').collect();
+                if parts.len() == 2 {
+                    crate::database::repositories::upsert_repository(&pool, parts[0], parts[1], None).await?;
+                    println!("✅ Watching {}/{}", parts[0], parts[1]);
+                } else {
+                    println!("⚠️  Skipping invalid repo format: {}", repo);
+                }
+            }
+            pool.close().await;
+        }
+        Err(e) => {
+            println!("❌ Database connection failed: {}", e);
+            println!("   Make sure PostgreSQL is running and the URL is correct.");
+        }
     }
 
     println!("\n✅ Setup complete!");
-    println!("Next steps:");
-    println!("  1. Edit {} with your tokens", env_path.display());
-    println!("  2. Run: github-agent db migrate");
-    println!("  3. Run: github-agent serve");
-    println!("  4. Run: github-agent service install (for auto-start on boot)");
+    println!("\nNext steps:");
+    println!("  1. Run: github-agent serve");
+    println!("  2. Run: github-agent service install (for auto-start on boot)");
+    println!("  3. Check email for issue analysis notifications");
 
     Ok(())
 }

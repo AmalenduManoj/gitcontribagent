@@ -49,7 +49,9 @@ sha2 = "0.11"
 hex = "0.4"
 base64 = "0.22"
 
-# Config directory resolution
+# Interactive prompts
+dialoguer = "0.11"
+indicatif = "0.17"
 dirs = "5"
 
 # Agent framework
